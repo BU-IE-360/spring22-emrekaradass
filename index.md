@@ -11,4 +11,3 @@ Homework 1 Rmd File [Here](https://bu-ie-360.github.io/spring22-emrekaradass/Hom
 ## Homework 3 
 
 
-[link](https://moodle.boun.edu.tr/login/login.php)
