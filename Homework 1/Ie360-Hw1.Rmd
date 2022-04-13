@@ -1,0 +1,220 @@
+---
+title: "Homework 1 - IE 360"
+author: "Emre Karadas"
+date: '2022-04-13'
+output: html_document
+---
+
+## 1. Introduction
+First of all, I would like to tell you why I chose these data. The day I listened to the explanation of the assignment in class, an article about the unemployment rate in Turkey caught my attention. When I thought about this topic afterwards, I thought that for the unemployment rate to increase, there should be more liquidated companies than newly established companies. So, I decided to examine the relationship between these data.
+
+When the unemployment rate increases, should the number of newly opened companies be less than the number of liquidated companies? In this case, how much did people search for the term “unemployment rate” on google? In order to find an answer to the question in my mind, I analyzed the relationship between data. While doing these analyzes, I examined 4 different data on https://evds2.tcmb.gov.tr/ and https://trends.google.com/trends/.
+
+The names of these data are: Search Number of "Unemployment Rate" on Google, Unemployment Rate, Total Number of Newly Established Firms, Total Number of Liquidated Firms.
+
+## Used Packages
+```{r message=FALSE, warning=FALSE}
+library(zoo,warn.conflicts = FALSE)
+library(readxl)
+library(ggplot2)
+library(lubridate)
+library(corrplot)
+```
+
+I assigned the data to the specific variables to understand easily.
+
+## Related Data
+```{r}
+
+UnemploymentRateSearch <- read.csv("UnemploymentRateSearch.csv")
+UnemploymentRateSearch$Date <- as.yearmon(UnemploymentRateSearch$Date)
+
+EstablishedFirms <- read_excel("EstablishedFirms.xlsx")
+EstablishedFirms$Date <- as.yearmon(EstablishedFirms$Date)
+
+LiquidatedFirms <- read_excel("LiquidatedFirms.xlsx")
+LiquidatedFirms$Date <- as.yearmon(LiquidatedFirms$Date)
+
+UnemploymentRate <- read_excel("UnemploymentRate.xlsx")
+UnemploymentRate$Date <- as.yearmon(UnemploymentRate$Date)
+
+```
+
+## 2. Google Trends Result for İssizlik Orani / 2017-2022 / Monthly
+
+## 2.1 Summary
+```{r}
+head(UnemploymentRateSearch, 6)
+## First Six Months Data
+```
+
+```{r}
+tail(UnemploymentRateSearch, 6)
+## Last Six Months Data
+```
+
+```{r}
+summary(UnemploymentRateSearch$Index)
+## Summary of Google Trends Result for İssizlik Orani
+```
+
+## 2.2 Box-Plotted Data
+```{r}
+ggplot(UnemploymentRateSearch, aes(x=factor(year(Date)),y=Index)) + 
+geom_boxplot(aes(fill=factor(year(Date)))) + 
+xlab("Years") + ylab("Index") + 
+ggtitle("Google Trends Result for Issizlik Orani") +
+theme_linedraw() + theme(legend.position = "none")
+```
+
+## 2.3 Plotted Data
+```{r}
+ggplot(UnemploymentRateSearch, aes(Date, Index)) +
+geom_line(data = UnemploymentRateSearch, color="red", linetype = "solid") +
+ggtitle("Google Trends Result for Issizlik Orani") +
+xlab("Date (Monthly)") + 
+ylab("Index") +
+theme_linedraw()
+```
+
+## 3.  Total Number of New Established Firms / 2017-2022 / Monthly
+
+## 3.1 Summary
+```{r}
+head(EstablishedFirms, 6)
+## First Six Months Data
+```
+
+```{r}
+tail(EstablishedFirms, 6)
+## Last Six Months Data
+```
+
+```{r}
+summary(EstablishedFirms$Total_Established_Firms)
+## Summary of New Established Firms
+```
+
+## 3.2 Box-Plotted Data
+```{r}
+ggplot(EstablishedFirms, aes(x=factor(year(Date)),y=Total_Established_Firms)) + 
+geom_boxplot(aes(fill=factor(year(Date)))) + 
+xlab("Years") + ylab("Number of Established Firms") + 
+ggtitle("Total Number of New Established Firms") +
+theme_linedraw() + theme(legend.position = "none")
+```
+
+## 3.3 Plotted Data
+```{r}
+ggplot(EstablishedFirms, aes(Date, Total_Established_Firms)) +
+geom_line(data = EstablishedFirms, color="red", linetype = "solid") +
+ggtitle("Total Number of New Established Firms") +
+xlab("Date (Monthly)") + 
+ylab("Number of Established Firms") +
+theme_linedraw()
+```
+
+## 4.  Total Number of Liquidated Firms / 2017-2022 / Monthly
+
+## 4.1 Summary
+```{r}
+head(LiquidatedFirms, 6)
+## First Six Months Data
+```
+
+```{r}
+tail(LiquidatedFirms, 6)
+## Last Six Months Data
+```
+
+```{r}
+summary(LiquidatedFirms$Total_Liquidated_Firms)
+## Summary of Liquidated Firms
+```
+
+## 4.2 Box-Plotted Data
+```{r}
+ggplot(LiquidatedFirms, aes(x=factor(year(Date)),y=Total_Liquidated_Firms)) + 
+geom_boxplot(aes(fill=factor(year(Date)))) + 
+xlab("Years") + ylab("Number of Liquidated Firms") + 
+ggtitle("Total Number of Liquidated Firms") +
+theme_linedraw() + theme(legend.position = "none")
+```
+
+## 4.3 Plotted Data
+```{r}
+ggplot(LiquidatedFirms, aes(Date, Total_Liquidated_Firms)) +
+geom_line(data = LiquidatedFirms, color="red", linetype = "solid") +
+ggtitle("Total Number of Liquidated Firms") +
+xlab("Date (Monthly)") + 
+ylab("Number of Liquidated Firms") +
+theme_linedraw()
+```
+
+## 5.  Unemployment Rate / 2017-2022 / Monthly
+
+## 5.1 Summary
+```{r}
+head(UnemploymentRate, 6)
+## First Six Months Data
+```
+
+```{r}
+tail(UnemploymentRate, 6)
+## Last Six Months Data
+```
+
+```{r}
+summary(UnemploymentRate$Unemployment_Rate)
+## Summary of Unemployment Rate
+```
+
+## 5.2 Box-Plotted Data
+```{r}
+ggplot(UnemploymentRate, aes(x=factor(year(Date)),y=Unemployment_Rate)) + 
+geom_boxplot(aes(fill=factor(year(Date)))) + 
+xlab("Years") + ylab("Rate (%)") + 
+ggtitle("Unemployment Rate") +
+theme_linedraw() + theme(legend.position = "none")
+```
+
+## 5.3 Plotted Data
+```{r}
+ggplot(UnemploymentRate, aes(Date, Unemployment_Rate)) +
+geom_line(data = UnemploymentRate, color="red", linetype = "solid") +
+ggtitle("Unemployment Rate") +
+xlab("Date (Monthly)") + 
+ylab("Rate (%)") +
+theme_linedraw()
+```
+
+## 6. Correlation Matrix
+
+```{r}
+data <- data.frame( UnemploymentRateSearch$Index,  EstablishedFirms$Total_Established_Firms, LiquidatedFirms$Total_Liquidated_Firms, UnemploymentRate$Unemployment_Rate)
+names(data) <- c("Unemployment Rate Search", "Established Firms", "Liquidated Firms" , "Unemployment Rate")
+corrplot(cor(data), method="number")
+```
+
+## 7. Conclusion
+First of all, I showed first and last 6 months data for each data set . Then I listed min, max, median and mean values for each data set which I get from https://evds2.tcmb.gov.tr/ and https://trends.google.com/trends/ to analyze in my report.
+
+Secondly, I plotted data in two different way which are box plot and line plot with the help of RStudio. With the help of plotting data, I could see the data visually. Therefore, data plotting helped me to understand what data say. 
+
+Finally, I created correlation matrix to see relationship between these 4 data. However, when I look at the correlation matrix results, I saw that I reached a different result from the idea that I thought when choosing these data. By looking at correlation matrix, it can be seen that maximum correlation is 0.36. So, contrary to my thought, I saw that the data do not have strong connections with each other.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
