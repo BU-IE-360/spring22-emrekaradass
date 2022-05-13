@@ -1,0 +1,145 @@
+---
+title: "IE360 - Homework 2"
+author: "Emre Karadas - 2018402255"
+date: "13/05/2022"
+output: html_document
+---
+
+## Required Packages
+
+```{r message=FALSE, warning=FALSE}
+library(zoo)
+library(corrplot)
+library(dplyr)
+library(readxl)
+library(lubridate)
+library(ggplot2)
+library(dplyr)
+require(urca)
+require(GGally)
+require(forecast)
+require(data.table)
+```
+
+## 1. Introduction
+
+In the Homework 2, the data will be plotted and analyzed. After that, the UGS sales for every quarter of 2007 will be forcested via using time series regression methods.
+
+At the bottom, reading of the data is done. Also, the first and the last year data are shown:
+
+```{r,include=TRUE, warning=FALSE, error=FALSE}
+data_path <- "IE360_Spring22_HW2_data.csv"
+data <- read.csv(data_path)
+
+data$Unleaded.Gasoline.Sale..UGS. = gsub(" ", "", data$Unleaded.Gasoline.Sale..UGS.)
+data$Unleaded.Gasoline.Sale..UGS. = as.numeric(data$Unleaded.Gasoline.Sale..UGS.)
+
+data$X..LPG.Vehicles..NLPG. = gsub(" ", "", data$X..LPG.Vehicles..NLPG.)
+data$X..LPG.Vehicles..NLPG. = as.numeric(data$X..LPG.Vehicles..NLPG)
+
+data$X..Unleaded.Gasoline.Vehicles..NUGV. = gsub(" ", "", data$X..Unleaded.Gasoline.Vehicles..NUGV.)
+data$X..Unleaded.Gasoline.Vehicles..NUGV. = as.numeric(data$X..Unleaded.Gasoline.Vehicles..NUGV.)
+
+data$GNP.Agriculture = gsub(" ", "", data$GNP.Agriculture)
+data$GNP.Agriculture = as.numeric(data$GNP.Agriculture)
+
+data$GNP.Commerce = gsub(" ", "", data$GNP.Commerce)
+data$GNP.Commerce = as.numeric(data$GNP.Commerce)
+
+data$GNP.Total = gsub(" ", "", data$GNP.Total)
+data$GNP.Total = as.numeric(data$GNP.Total)
+
+data$Quarter = as.character(data$Quarter)
+data = data.table(data)
+```
+
+First Year:
+
+```{r}
+head(data,4)
+```
+
+Last Year:
+
+```{r}
+tail(data,4)
+```
+
+
+## 2. Plotted Data
+
+```{r,include=TRUE, warning=FALSE, error=FALSE}
+data$UGS = ts(data$Unleaded.Gasoline.Sale..UGS., start = 2000, deltat= 1/4)
+ggplot(data, aes(Quarter,data$Unleaded.Gasoline.Sale..UGS. , group=1)) + geom_line(color="blue") +geom_point()+ ggtitle("Unleaded Gasoline Sale between 2000 and 2006")
+```
+
+The data are plotted in basic form. As can be seen, there is decreasing trend and seasonality. In addition, as time progresses, the variance decreases. Therefore, this data is not stationary due to these factors.
+
+```{r}
+acf(data$Unleaded.Gasoline.Sale..UGS.[0:28], 10, main="ACF up to 10 LAGS")
+```
+
+The time series is significantly autocorrelated on lag 1 and 4.
+
+```{r}
+data[ , trend := 1 :.N]
+```
+
+Trend is added to the data.
+
+```{r}
+seasonality_period <- 4
+data[ , seasonality := (1:.N) %% seasonality_period] 
+```
+
+Seasonality is added to the data.
+
+```{r}
+data[seasonality == 0, seasonality := 4]
+```
+
+Arranging numbers to see the seasonality.
+
+```{r}
+data$seasonality = as.factor(data$seasonality) 
+summary(data)
+```
+
+## 3. Alternative Regression Models
+
+Model will be improved by using different variables to decide the best model.  
+
+Model 1: Initial Model.
+
+```{r}
+Model_1 = lm(Unleaded.Gasoline.Sale..UGS.~trend ,data)
+checkresiduals(Model_1$residuals)
+summary(Model_1)
+```
+
+Model 2: In this model, seasonality will be added to the model.
+
+```{r}
+Model_2 = lm(Unleaded.Gasoline.Sale..UGS.~trend + seasonality ,data)
+checkresiduals(Model_2$residuals)
+summary(Model_2)
+```
+
+Model_2's Autocorrelation seems better than the Model_1.
+
+Model 3: In this model, Adjusted R square will be developed by adding different indepent variables.
+
+```{r}
+Model_3 = lm(Unleaded.Gasoline.Sale..UGS.~trend + 
+            seasonality +
+            X..of.Diesel.Gasoline.Vehicles..NDGV. +
+            GNP.Commerce +
+            X..Unleaded.Gasoline.Vehicles..NUGV.,
+data)
+checkresiduals(Model_3$residuals)
+summary(Model_3)
+```
+
+## 4. Conclusion
+
+I visualized the statistics to get a sense of the big picture. I noticed that the data has a declining trend and seasonality. As a result of the stationary definition, I have concluded that this data is not stationary. Then, the approaches described in the "Alternative Regression Models" section, I developed a regression model to forecast data for the coming year. Unfortunately, I am unable to make forecasts for 2007.
