@@ -15,7 +15,7 @@ Homework 2 Html File [Here](https://bu-ie-360.github.io/spring22-emrekaradass/Ie
 
 ## Homework 3 
 
-Project Rmd File [Here](Project_Emre_Karadas.Rmd)
+Project Rmd File [Here](Project/Project_Emre_Karadas.Rmd)
 
 Project Html File [Here](https://bu-ie-360.github.io/spring22-emrekaradass/Project/Project_Emre_Karadas.html)
 
