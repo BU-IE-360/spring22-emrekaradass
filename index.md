@@ -13,7 +13,7 @@ Homework 2 Rmd File [Here](Ie360-Hw2.Rmd)
 
 Homework 2 Html File [Here](https://bu-ie-360.github.io/spring22-emrekaradass/Ie360-Hw2.html)
 
-## Homework 3 
+## Project
 
 Project Rmd File [Here](Project/Project_Emre_Karadas.Rmd)
 
