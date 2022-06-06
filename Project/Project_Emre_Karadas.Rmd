@@ -1,0 +1,216 @@
+---
+title: "IE360 Project"
+author: "Emre Karadas"
+date: '2022-06-07'
+output: html_document
+---
+
+<style type="text/css">
+  title {
+  font-style: bold}
+  body{
+  font-family: Times New Roman;
+  font-size: 12pt;
+}
+</style>
+
+
+## Required Packages
+```{r message=FALSE, warning=FALSE}
+library(zoo,warn.conflicts = FALSE)
+library(readxl)
+library(ggplot2)
+library(lubridate)
+library(corrplot)
+require(data.table)
+require(GGally)
+require(forecast)
+```
+
+
+## 1. Introduction
+
+In this project, the main aim is to predict electricity production using up to 2-days before data that contains different information about that day. Then different techniques will be used to predict electricity production for the next day. There are various techniques in the literature and some of them will be used to predict electricity production. Names of these techniques are linear regression, naive, exponential smoothing, and moving average. In the upcoming sections all of them will be evaluated in a detailed way and on of them will be chosen as a main technique.
+
+
+```{r message=FALSE, warning=FALSE}
+base_long_weather <- read.csv("long_weather.csv")
+base_production <- read.csv("production.csv")
+
+data_path_long_weather <- "2022-06-02_weather.csv"
+data_long_weather <- read.csv(data_path_long_weather)
+data_long_weather$date = as.Date(data_long_weather$date)
+
+data_path_production <- "2022-06-02_production.csv"
+data_production <- read.csv(data_path_production)
+data_production$date = as.Date(data_production$date)
+
+data_long_weather_dt <- data.table(data_long_weather)
+data_production_dt <- data.table(data_production)
+
+summary(data_long_weather_dt)
+summary(data_production_dt)
+
+```
+
+## 2. Data Configuration
+
+```{r message=FALSE, warning=FALSE}
+data_wide_format <- dcast(data_long_weather_dt, date + hour  ~ variable + lat + lon, value.var = "value")
+
+data_wide_format$meanCLO <- rowMeans(data_wide_format[,3:11])
+data_wide_format$meanDSWRF <- rowMeans(data_wide_format[,12:20])
+data_wide_format$meanRHUM <- rowMeans(data_wide_format[,21:29])
+data_wide_format$meanTEMP <- rowMeans(data_wide_format[,30:38])
+data_wide_format$time <- data_wide_format$date + data_wide_format$hour/24
+data_production_dt$time <- data_production_dt$date + data_production_dt$hour/24
+
+data_final <- merge(data_wide_format, data_production_dt, by="time")
+data_final <- data.table(data_final[,1:3],data_final[,40:43],data_final[,46])
+
+summary(data_final)
+```
+
+## 3. Plot of Representative Data
+
+After the data was obtained, plots were made and it was understood that there was no relationship between the last part of a certain amount of data and the beginning of the data. Then, a certain part of the database was thrown so that our future predictions would be more accurate.
+
+
+```{r message=FALSE, warning=FALSE}
+
+data_final <- subset(data_final, data_final$hour.x > 4 & data_final$hour.x < 21)
+tail(data_final,150)
+data_final_adjusted <- data_final[6500:(nrow(data_final)),]
+
+plot(data_final$date, data_final$production, type="line", main="Original Data Plot")
+plot(data_final_adjusted$date, data_final_adjusted$production, type="line", main="Representative Data Plot")
+
+```
+
+## 4. Linear Regression Model with Means
+
+Linear model were created using the information given at the beginning of the project. The results of the linear model were checked, but there was no sufficient progress. These interpretations were made based on Adjusted R Square, which we learned in the course.
+
+
+```{r message=FALSE, warning=FALSE}
+#LINEAR_REGRESSION
+Model_1 = lm(production ~ hour.x + meanCLO + meanDSWRF + meanRHUM + meanTEMP, data_final_adjusted)
+
+data_final_adjusted$prediction <- predict(Model_1, data_final_adjusted)
+
+summary(Model_1)
+
+ggplot(data_final_adjusted) +
+  geom_line(aes(x=data_final_adjusted$date.x, y=data_final_adjusted$production,color="Actual"),size=1)+
+  geom_line(aes(x=data_final_adjusted$date.x, y=data_final_adjusted$prediction,color="Forecasted"),size=1)+
+  labs(x="Date",
+       y="Production",
+       title="Actual vs Forecasted Values in Linear Regression Model") +
+  theme_linedraw()
+
+
+
+```
+
+
+## 5. Naive Forecast for Last Week
+
+The Naive model created our Prediction data, which would place the previous week's data in new dates. As a result of the naive model, R-Adjusted value did not give a very good result, so this method was not used. Also, the main error comes from the weather difference between consecutive days.
+
+```{r message=FALSE, warning=FALSE}
+#NAIVE_WEEK
+predictionN <- 1:24
+for(i in 1:24)
+{
+predictionN[i] <- data_production[data_production$date == "2022-05-13" & data_production$hour == 0+i-1, "production"]
+}
+
+predictionN
+plot(predictionN,type="line")
+
+```
+
+
+
+
+## 6. Moving Average Method 
+
+Among the techniques used is perhaps the simplest Moving Average method after the naive model. As a result, the average of a certain number of data lasting is taken to predict the future. This method seems more successful than other methods. Of course, there are points where this model has difficulty in predicting. In addition to the aspects or other data that should be taken into consideration, much better estimates can be made.
+
+```{r message=FALSE, warning=FALSE}
+#MOVNG_AVERAGE
+
+predictionDay1 <- 1:24
+for(i in 1:24){
+predictionDay1[i] <- data_production[data_production$date == "2022-05-23" & data_production$hour == 0+i-1, "production"]
+}
+predictionDay2 <- 1:24
+for(i in 1:24){
+predictionDay2[i] <- data_production[data_production$date == "2022-05-19" & data_production$hour == 0+i-1, "production"]
+}
+predictionDay3 <- 1:24
+for(i in 1:24){
+predictionDay3[i] <- data_production[data_production$date == "2022-05-18" & data_production$hour == 0+i-1, "production"]
+}
+predictionDay4 <- 1:24
+for(i in 1:24){
+predictionDay4[i] <- data_production[data_production$date == "2022-05-17" & data_production$hour == 0+i-1, "production"]
+}
+
+#FOR LAST 4 DAYS
+predictionDay <- (predictionDay1+predictionDay2+predictionDay3 + predictionDay4)/4
+predictionDay
+plot(predictionDay,type="line", main = " Moving Average for m = 4 Days")
+
+#FOR LAST 2 DAYS
+predictionDayx <- (predictionDay1+predictionDay2)/2
+predictionDayx
+plot(predictionDayx, type="line", main = " Moving Average for m = 2 Days")
+```
+
+
+## 7. Model Comparison
+
+During the general estimation process, various methods were used. The first day linear regression method was used for predicting, but after the evaluations were made, we decided that this method was not a very good method and changed the method we used. Until the last day, we made our estimates using the 4-day Moving Average method. Since we saw the differences in the data on the last day, we customized the 4 -day Moving Average method and took it to the last 2 days so we thought we would get better predictions.
+
+## 8. Prediction
+```{r message=FALSE, warning=FALSE}
+
+final_prediction1 <- c(0.0, 0.0, 0.0, 0.0, 0.0, 6.42477930, 14.56780706, 14.44204279, 25.55720459, 26.61890774, 34.49155335, 35.0, 35.0, 34.71394122, 33.49154631, 31.83282020, 25.70547899, 20.71988290, 15.30168135, 9.26573033, 3.27878889, 0.0, 0.0, 0.0)
+
+final_prediction2 <- c(0.0000,  0.0000,  0.0000,  0.0000,  0.0000,  0.1275, 6.7625, 26.9475, 34.9950, 34.9950, 35.0000, 34.4300, 34.2550, 29.2750, 30.4675, 28.6325, 29.5050, 15.6300,  6.8050,  0.9650,  0.0000)
+
+final_prediction3 <- c(0.0, 0.0, 0.0, 0.0, 0.0, 0.1275, 6.7625, 26.9475, 34.9950, 34.9950, 35.0000, 34.4300, 34.2550, 29.2750, 30.4675, 28.6325, 29.5050, 15.6300, 6.8050, 0.9650, 0.0, 0.0, 0.0, 0.0)
+
+final_prediction4 <- c(0.0, 0.0, 0.0, 0.0, 0.0, 0.1425, 6.5875, 26.3650, 34.9925, 34.9950, 34.9900, 34.4300, 34.2550, 29.0125, 29.3175, 23.6600, 24.2050, 14.2500, 6.4650, 1.0450, 0.0, 0.0, 0.0, 0.0) 
+
+final_prediction5 <- c(0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.1575, 6.7875, 26.3375, 34.9950, 34.9975, 34.9900, 34.4300, 34.5400, 30.8825, 29.9650, 23.6550, 23.6850, 19.3350, 8.6325, 1.2550, 0.0000, 0.0000, 0.0000, 0.0000)
+
+final_prediction6 <- c(0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.1800, 6.9600, 26.0775, 34.9950, 34.9975, 34.9900, 35.0000, 34.9675, 34.6550, 33.4000, 28.1500, 19.6450, 15.2300, 7.4450, 1.1925, 0.0000, 0.0000, 0.0000, 0.0000)
+
+final_prediction7 <- c(0.0000,  0.0000,  0.0000,  0.0000,  0.0000,  0.1800, 6.9125, 25.8425, 34.9975, 35.0000, 34.9900, 35.0000, 35.0000, 34.7375, 33.8500, 28.4425, 18.6125, 17.1575,  7.5925,  1.1875,  0.0000,  0.0000,  0.0000,  0.0000)
+
+final_prediction8 <- c(0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0675, 4.0900, 18.7250, 29.0800, 27.7125, 27.7675, 30.7725, 28.6975, 27.9825, 23.8825, 19.5575, 20.6675, 14.2975, 5.7550, 0.8725, 0.0000,  0.0000,  0.0000,  0.0000)
+
+final_prediction9 <- c(0.00, 0.00, 0.00, 0.00, 0.00, 0.25, 6.90, 24.70, 35.00, 34.96, 36.60, 38.49, 38.12, 37.86, 37.95, 37.92, 37.22, 24.94, 10.01, 0.00, 0.00, 0.00, 0.00, 0.00)
+
+final_prediction10 <- c(0.000,  0.000,  0.000,  0.000,  0.000,  0.235,  6.915, 25.150, 37.000, 37.115, 37.720, 38.535, 38.040, 37.910, 37.905, 37.925, 37.430, 25.855, 10.170, 0.740,  0.000,  0.000,  0.000,  0.000)
+
+total_final_prediction <- c(final_prediction1, final_prediction2, final_prediction3, final_prediction4, final_prediction5, final_prediction6, final_prediction7, final_prediction8, final_prediction9, final_prediction10)
+
+summary(total_final_prediction)
+plot(total_final_prediction, type="line")
+
+
+```
+
+## 9. Conclusion
+
+When all techniques that are applied during the process are taken into consideration, the superior one was the Moving Average Method. In the end, the decision is made by looking at the R-adjusted values. Other models were generally not successful in predicting. Linear model made a lot of mistakes because of the form of the overall data. Naive model did not give decent results in cases where the weather is in the detection of the weather. However, the naive model gave good results when the weather of the days was similar to each other. Moving Average gave a more successful result. As a result, we have optimized electrical production by making more accurate decisions for the future.
+
+
+## Additional Notes
+My RMarkdown file is located at the progress journal. [Click here](https://bu-ie-360.github.io/spring22-emrekaradass/Project/Project_Emre_Karadas.Rmd)
+
+
+
